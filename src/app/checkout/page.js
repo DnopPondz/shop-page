@@ -2,18 +2,27 @@
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/context/CartContext";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // เพิ่ม useEffect
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession(); // เพิ่ม status
   const [address, setAddress] = useState("");
   const router = useRouter();
 
+  // --- เพิ่ม useEffect เช็คสถานะล็อกอิน ---
+  useEffect(() => {
+    if (status === "unauthenticated") {
+        toast.error("กรุณาเข้าสู่ระบบก่อนชำระเงิน");
+        router.push("/login");
+    }
+  }, [status, router]);
+
   const handleOrder = async () => {
-    if (!session) return alert("Please login first");
-    if (!address) return alert("Please enter shipping address");
+    if (!session) return; // กันไว้อีกชั้น
+    if (!address) return toast.error("กรุณากรอกที่อยู่จัดส่ง");
 
     const res = await fetch("/api/orders", {
       method: "POST",
@@ -28,11 +37,20 @@ export default function CheckoutPage() {
 
     if (res.ok) {
       clearCart();
-      router.push("/history"); // ไปหน้าประวัติการสั่งซื้อ
+      toast.success("สั่งซื้อสำเร็จ! ขอบคุณครับ");
+      router.push("/history");
+    } else {
+      toast.error("เกิดข้อผิดพลาด");
     }
   };
 
+  // ถ้ากำลังเช็ค session หรือยังไม่ล็อกอิน ให้แสดง Loading ว่างๆ หรือ Spinner
+  if (status === "loading" || status === "unauthenticated") {
+    return <div className="min-h-screen bg-gray-50 pt-32 text-center">Loading...</div>;
+  }
+
   return (
+    // ... (ส่วน return JSX เหมือนเดิม) ...
     <div className="min-h-screen bg-gray-50 pt-32 pb-20">
       <Navbar />
       <div className="max-w-2xl mx-auto px-6">

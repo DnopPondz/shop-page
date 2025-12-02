@@ -2,7 +2,6 @@ import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
 import LineProvider from "next-auth/providers/line";
-import AppleProvider from "next-auth/providers/apple";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
@@ -11,26 +10,26 @@ import bcrypt from "bcryptjs";
 export const authOptions = {
   adapter: MongoDBAdapter(clientPromise),
   session: {
-    strategy: "jwt", // Required when using Credentials provider
+    strategy: "jwt",
   },
   providers: [
+    // 1. Google Provider
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
+    // 2. Facebook Provider (ถ้ามี)
     FacebookProvider({
       clientId: process.env.FACEBOOK_CLIENT_ID,
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
     }),
+    // 3. Line Provider (ถ้ามี)
     LineProvider({
       clientId: process.env.LINE_CLIENT_ID,
       clientSecret: process.env.LINE_CLIENT_SECRET,
       authorization: { params: { scope: "profile openid email" } },
     }),
-    AppleProvider({
-      clientId: process.env.APPLE_ID,
-      clientSecret: process.env.APPLE_SECRET,
-    }),
+    // 4. Credentials Provider (Login ด้วย Email/Pass)
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -41,34 +40,28 @@ export const authOptions = {
         const client = await clientPromise;
         const db = client.db();
 
-        // 1. Find user by email
         const user = await db.collection("users").findOne({ email: credentials.email });
 
-        // 2. Check if user exists
         if (!user) {
-          throw new Error("No user found with this email.");
+          throw new Error("ไม่พบผู้ใช้งานนี้ในระบบ");
         }
 
-        // 3. Check if user has a password (if they signed up via Social, they won't have one)
+        // ถ้า User สมัครผ่าน Google/Social จะไม่มี Password
         if (!user.password) {
-          throw new Error("This email is registered via Social Login. Please login with Google/Facebook/Line.");
+          throw new Error("อีเมลนี้ลงทะเบียนผ่าน Social Login กรุณาล็อกอินผ่านช่องทางนั้น");
         }
 
-        // 4. *** CRITICAL: Check if user is verified ***
-        // If user registered via email/pass, they must verify OTP first.
-        // Social logins usually default verified to true or don't have this field checked here.
+        // ถ้ายังไม่ยืนยัน OTP (เฉพาะคนที่สมัครผ่านฟอร์ม)
         if (user.isVerified === false) {
-           throw new Error("Please verify your email via OTP before logging in.");
+           throw new Error("กรุณายืนยันตัวตนผ่าน OTP ก่อนเข้าใช้งาน");
         }
 
-        // 5. Validate Password
         const isValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isValid) {
-          throw new Error("Invalid password.");
+          throw new Error("รหัสผ่านไม่ถูกต้อง");
         }
 
-        // 6. Return user object (NextAuth will use this to build the token)
         return {
           id: user._id.toString(),
           name: user.name,
@@ -80,34 +73,27 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    // 1. JWT Callback: Runs whenever a token is created or updated
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        // Add custom fields from 'authorize' return to the token
         token.id = user.id;
         token.role = user.role;
       }
-      
-      // Update session manually (e.g. after editing profile)
       if (trigger === "update" && session) {
         return { ...token, ...session.user };
       }
-      
       return token;
     },
-    // 2. Session Callback: Runs when the client calls useSession()
     async session({ session, token }) {
       if (token) {
-        // Add custom fields from token to the session
         session.user.id = token.id;
         session.user.role = token.role;
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET, // ต้องตรงกับใน .env
   pages: {
-    signIn: "/login", // Redirect to our custom login page if needed
+    signIn: "/login",
   },
 };
 

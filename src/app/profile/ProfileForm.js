@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
+import toast from "react-hot-toast";
 
 export default function ProfileForm({ user }) {
   // user.address อาจจะยังไม่มีในตอนแรก ให้เป็นค่าว่าง
@@ -19,9 +20,9 @@ export default function ProfileForm({ user }) {
     });
 
     if (res.ok) {
-      alert("บันทึกข้อมูลเรียบร้อย!");
+      toast.success("บันทึกข้อมูลเรียบร้อย!");
     } else {
-      alert("เกิดข้อผิดพลาด");
+      toast.error("เกิดข้อผิดพลาด กรุณาลองใหม่");
     }
     setLoading(false);
   };

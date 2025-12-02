@@ -1,6 +1,5 @@
 // app/history/page.js
 "use client";
-import Navbar from "@/components/Navbar";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation"; // เพิ่ม router เพื่อดีดคนไม่ล็อกอิน
@@ -44,7 +43,7 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-32">
-      <Navbar />
+  
       <div className="container mx-auto px-6 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8 text-gray-800">
             Order History <span className="text-sm font-normal text-gray-500">({session?.user?.name})</span>

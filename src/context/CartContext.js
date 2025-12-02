@@ -1,23 +1,45 @@
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
 
-const CartContext = createContext();
+// 1. สร้าง Context พร้อม Default Value (กันเหนียวไว้ เวลาเรียกใช้นอก Provider จะได้ไม่ Error)
+const CartContext = createContext({
+  cart: [],
+  addToCart: () => {},
+  removeFromCart: () => {},
+  clearCart: () => {},
+  cartTotal: 0,
+  cartCount: 0,
+  isCartOpen: false,
+  openCart: () => {},
+  closeCart: () => {},
+});
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false); // 1. เพิ่ม State นี้
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  
+  // isMounted ใช้เพื่อป้องกัน Hydration Mismatch (หน้าจอ Server กับ Client ไม่ตรงกัน)
+  const [isMounted, setIsMounted] = useState(false);
 
-  // ... (useEffect โหลดของเดิม เก็บไว้เหมือนเดิม) ...
   useEffect(() => {
+    setIsMounted(true);
+    // โหลดข้อมูลจาก LocalStorage เฉพาะตอนอยู่ฝั่ง Client แล้วเท่านั้น
     const savedCart = localStorage.getItem("my-shop-cart");
-    if (savedCart) setCart(JSON.parse(savedCart));
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (error) {
+        console.error("Error parsing cart:", error);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("my-shop-cart", JSON.stringify(cart));
-  }, [cart]);
+    if (isMounted) {
+      localStorage.setItem("my-shop-cart", JSON.stringify(cart));
+    }
+  }, [cart, isMounted]);
 
-  // ... (ฟังก์ชัน addToCart, removeFromCart เดิม เก็บไว้) ...
   const addToCart = (product) => {
     setCart((prev) => {
       const existing = prev.find((item) => item._id === product._id);
@@ -28,7 +50,7 @@ export function CartProvider({ children }) {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
-    setIsCartOpen(true); // 2. พอหยิบใส่ตะกร้า ให้เปิด Sidebar โชว์เลย เท่ๆ
+    setIsCartOpen(true);
   };
 
   const removeFromCart = (id) => {
@@ -37,13 +59,15 @@ export function CartProvider({ children }) {
 
   const clearCart = () => setCart([]);
 
+  // คำนวณค่าต่างๆ
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // 3. ฟังก์ชันเปิดปิด
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
 
+  // 2. สำคัญ: ต้อง Return Provider เสมอ! ห้าม return null หรือ children เปล่าๆ
+  // หากยังไม่ Mount (Server Side) ค่า cart จะเป็น [] ว่างๆ ไปก่อน ซึ่งถูกต้องแล้ว
   return (
     <CartContext.Provider value={{ 
       cart, 
@@ -51,10 +75,10 @@ export function CartProvider({ children }) {
       removeFromCart, 
       clearCart, 
       cartTotal, 
-      cartCount,
-      isCartOpen, // ส่งออกไปใช้
-      openCart,   // ส่งออกไปใช้
-      closeCart   // ส่งออกไปใช้
+      cartCount, 
+      isCartOpen, 
+      openCart, 
+      closeCart 
     }}>
       {children}
     </CartContext.Provider>

@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; // <--- ต้องมีบรรทัดนี้ครับ
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
+  
   const [newProduct, setNewProduct] = useState({
     title: "",
     description: "",
@@ -11,16 +12,26 @@ export default function AdminProducts() {
     category: "",
     image: "",
   });
-  const [loading, setLoading] = useState(false);
+  
+  // เพิ่ม loading state เพื่อกันหน้าจอขาว
+  const [isLoadingData, setIsLoadingData] = useState(true); 
+  const [loading, setLoading] = useState(false); // สำหรับปุ่ม save
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
-    const res = await fetch("/api/products"); // ใช้ API เดิมที่เคยสร้าง
-    const data = await res.json();
-    setProducts(data);
+    setIsLoadingData(true);
+    try {
+      const res = await fetch("/api/products");
+      const data = await res.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Failed to fetch products", error);
+    } finally {
+      setIsLoadingData(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -34,7 +45,7 @@ export default function AdminProducts() {
     e.preventDefault();
     setLoading(true);
     
-    await fetch("/api/products", { // ใช้ API เดิมสำหรับ POST
+    await fetch("/api/products", { 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newProduct),
@@ -96,7 +107,7 @@ export default function AdminProducts() {
             value={newProduct.description}
             onChange={e => setNewProduct({...newProduct, description: e.target.value})}
           />
-          <button disabled={loading} type="submit" className="bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 md:col-span-2">
+          <button disabled={loading} type="submit" className="bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 md:col-span-2 disabled:bg-gray-400">
             {loading ? "Saving..." : "Add Product"}
           </button>
         </form>
@@ -115,21 +126,37 @@ export default function AdminProducts() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {products.map((p) => (
-              <tr key={p._id} className="hover:bg-gray-50">
-                <td className="p-4">
-                  <img src={p.image} className="w-12 h-12 rounded object-cover bg-gray-100" />
-                </td>
-                <td className="p-4 font-medium text-gray-800">{p.title}</td>
-                <td className="p-4 text-indigo-600 font-bold">฿{p.price}</td>
-                <td className="p-4">{p.stock}</td>
-                <td className="p-4">
-                  <button onClick={() => handleDelete(p._id)} className="text-red-500 hover:underline text-sm font-bold">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {isLoadingData ? (
+                // Skeleton Loader ง่ายๆ
+                <tr>
+                    <td colSpan="5" className="p-8 text-center text-gray-500">Loading products...</td>
+                </tr>
+            ) : products.length === 0 ? (
+                <tr>
+                    <td colSpan="5" className="p-8 text-center text-gray-500">No products found.</td>
+                </tr>
+            ) : (
+                products.map((p) => (
+                  <tr key={p._id} className="hover:bg-gray-50">
+                    <td className="p-4">
+                      {/* ถ้ามีรูปให้แสดง ถ้าไม่มีแสดง Placeholder */}
+                      <img 
+                        src={p.image || "https://placehold.co/100?text=No+Image"} 
+                        className="w-12 h-12 rounded object-cover bg-gray-100" 
+                        alt={p.title}
+                      />
+                    </td>
+                    <td className="p-4 font-medium text-gray-800">{p.title}</td>
+                    <td className="p-4 text-indigo-600 font-bold">฿{p.price.toLocaleString()}</td>
+                    <td className="p-4">{p.stock}</td>
+                    <td className="p-4">
+                      <button onClick={() => handleDelete(p._id)} className="text-red-500 hover:underline text-sm font-bold">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+            )}
           </tbody>
         </table>
       </div>

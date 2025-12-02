@@ -1,58 +1,48 @@
-// app/page.js
-"use client";
-import { useEffect, useState } from "react";
-import { useCart } from "@/context/CartContext";
+import { getProducts } from "@/lib/data";
+import ProductList from "@/components/ProductList";
 
-export default function Home() {
-  const [products, setProducts] = useState([]);
-  const { addToCart } = useCart();
+export const revalidate = 60;
 
-  useEffect(() => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data) => setProducts(data));
-  }, []);
+export default async function Home() {
+  const products = await getProducts();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <header className="pt-32 pb-20 px-6 text-center bg-gradient-to-b from-white to-gray-50">
-        <h1 className="text-5xl md:text-7xl font-black text-gray-900 mb-6 tracking-tight">
-          Discover the <br/> <span className="text-indigo-600">Extraordinary.</span>
-        </h1>
-        <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto">
-          รวมสินค้าคุณภาพดีที่สุด ดีไซน์ล้ำสมัย ส่งตรงถึงหน้าบ้านคุณภายใน 24 ชม.
-        </p>
-        <button className="bg-gray-900 text-white px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:bg-black transition hover:scale-105">
-          Shop Now
-        </button>
-      </header>
+    <div className="min-h-screen bg-slate-50">
+      {/* Hero Section - ดีไซน์ใหม่ */}
+      <section className="relative pt-32 pb-24 px-6 overflow-hidden">
+        {/* พื้นหลังตกแต่ง (Background Elements) */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
+            <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+            <div className="absolute top-20 right-10 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+        </div>
 
-      {/* Product Grid */}
-      <section className="container mx-auto px-6 py-16">
-        <h2 className="text-3xl font-bold mb-10 text-gray-800">New Arrivals</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {products.map((product) => (
-            <div key={product._id} className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 flex flex-col">
-              <div className="h-64 w-full bg-gray-100 rounded-2xl mb-4 overflow-hidden relative group">
-                <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                <button 
-                  onClick={() => addToCart(product)}
-                  className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg hover:bg-indigo-600 hover:text-white transition"
-                >
-                  🛒 +
-                </button>
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-1 truncate">{product.title}</h3>
-              <p className="text-gray-500 text-sm mb-3 line-clamp-2">{product.description}</p>
-              <div className="mt-auto flex justify-between items-center">
-                <span className="text-xl font-bold text-indigo-600">฿{product.price.toLocaleString()}</span>
-              </div>
-            </div>
-          ))}
+        <div className="container mx-auto text-center relative z-10">
+          <span className="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-600 text-sm font-semibold mb-6 border border-indigo-100 shadow-sm">
+            🚀 New Collection 2024
+          </span>
+          <h1 className="text-5xl md:text-8xl font-extrabold text-slate-900 mb-6 tracking-tight leading-tight">
+            Discover the <br/> 
+            <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
+              Extraordinary.
+            </span>
+          </h1>
+          <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto font-light">
+            ยกระดับไลฟ์สไตล์ของคุณด้วยสินค้าคุณภาพพรีเมียม ดีไซน์ล้ำสมัย <br className="hidden md:block"/>ส่งตรงถึงหน้าบ้านคุณด้วยบริการที่รวดเร็วที่สุด
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button className="bg-slate-900 text-white px-10 py-4 rounded-full font-semibold text-lg shadow-xl shadow-indigo-200 hover:bg-slate-800 hover:scale-105 transition duration-300">
+              Shop Now
+            </button>
+            <button className="bg-white text-slate-900 border border-slate-200 px-10 py-4 rounded-full font-semibold text-lg hover:bg-slate-50 hover:border-slate-300 transition duration-300">
+              View Catalog
+            </button>
+          </div>
         </div>
       </section>
+
+      {/* ส่งข้อมูลไปที่ Client Component */}
+      <ProductList initialProducts={products} />
     </div>
   );
 }
